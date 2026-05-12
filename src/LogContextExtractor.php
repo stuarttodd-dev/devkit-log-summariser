@@ -24,6 +24,12 @@ final class LogContextExtractor
         }
 
         $candidate = substr($headLine, $brace);
+
+        // Skip very large JSON contexts to prevent memory exhaustion
+        if (strlen($candidate) > 100000) { // 100KB limit
+            return [[], $headLine];
+        }
+
         try {
             $decoded = json_decode($candidate, true, 32, JSON_THROW_ON_ERROR);
         } catch (JsonException) {
@@ -52,7 +58,7 @@ final class LogContextExtractor
                     continue;
                 }
 
-                $out = $out + $this->flatten($value, $path);
+                $out += $this->flatten($value, $path);
                 continue;
             }
 

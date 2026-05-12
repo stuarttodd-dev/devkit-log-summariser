@@ -11,19 +11,19 @@ use Devkit\LogSummariser\ParsedLogEntry;
  * Walks a list of ParsedLogEntry and produces LogFlow instances.
  * Pure data; no I/O.
  */
-final class FlowGrouper
+final readonly class FlowGrouper
 {
     public function __construct(
-        private readonly FlowSignalExtractor $extractor = new FlowSignalExtractor(),
-        private readonly FlowDetector $detector = new FlowDetector(),
+        private FlowSignalExtractor $extractor = new FlowSignalExtractor(),
+        private FlowDetector $detector = new FlowDetector(),
     ) {
     }
 
     /**
-     * @param list<ParsedLogEntry> $entries
+     * @param iterable<ParsedLogEntry> $entries
      * @return list<LogFlow>
      */
-    public function group(array $entries, ?string $forcedKey = null): array
+    public function group(iterable $entries, ?string $forcedKey = null): array
     {
         /**
          * @var array<string, array{
@@ -78,11 +78,11 @@ final class FlowGrouper
             $flows[] = $this->buildFlow($bucket, $index++);
         }
 
-        $sortByStart = static function (LogFlow $a, LogFlow $b): int {
-            $left = $a->startedAt?->getTimestamp() ?? 0;
-            $right = $b->startedAt?->getTimestamp() ?? 0;
+        $sortByStart = static function (LogFlow $firstFlow, LogFlow $secondFlow): int {
+             $left = $firstFlow->startedAt?->getTimestamp() ?? 0;
+             $right = $secondFlow->startedAt?->getTimestamp() ?? 0;
 
-            return $left <=> $right;
+             return $left <=> $right;
         };
         usort($flows, $sortByStart);
 
@@ -183,11 +183,11 @@ final class FlowGrouper
 
         foreach ($bucket['entries'] as $entry) {
             if ($entry->occurredAt instanceof DateTimeImmutable) {
-                if ($start === null || $entry->occurredAt < $start) {
+                if (!$start instanceof \DateTimeImmutable || $entry->occurredAt < $start) {
                     $start = $entry->occurredAt;
                 }
 
-                if ($end === null || $entry->occurredAt > $end) {
+                if (!$end instanceof \DateTimeImmutable || $entry->occurredAt > $end) {
                     $end = $entry->occurredAt;
                 }
             }
@@ -221,21 +221,21 @@ final class FlowGrouper
             ? $end->getTimestamp() - $start->getTimestamp()
             : null;
 
-        return new LogFlow(
-            id: 'flow-' . $index,
-            type: $bucket['type'],
-            confidence: $bucket['confidence'],
-            confidenceReason: $bucket['reason'],
-            startedAt: $start,
-            endedAt: $end,
-            durationSeconds: $duration,
-            entryCount: count($bucket['entries']),
-            levels: array_keys($levels),
-            relatedFingerprints: array_keys($fingerprints),
-            mainError: $mainError,
-            contextValues: $this->mergeContext($bucket['signals'], $bucket['key']),
-            entries: $bucket['entries'],
-        );
+         return new LogFlow(
+             identifier: 'flow-' . $index,
+             type: $bucket['type'],
+             confidence: $bucket['confidence'],
+             confidenceReason: $bucket['reason'],
+             startedAt: $start,
+             endedAt: $end,
+             durationSeconds: $duration,
+             entryCount: count($bucket['entries']),
+             levels: array_keys($levels),
+             relatedFingerprints: array_keys($fingerprints),
+             mainError: $mainError,
+             contextValues: $this->mergeContext($bucket['signals'], $bucket['key']),
+             entries: $bucket['entries'],
+         );
     }
 
     /**

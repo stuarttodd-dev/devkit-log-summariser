@@ -9,10 +9,24 @@ use DateTimeImmutable;
 final class Summariser
 {
     /**
-     * @param list<ParsedLogEntry> $entries
+     * @param iterable<ParsedLogEntry> $entries
      * @return list<ErrorGroup>
      */
-    public function summarise(array $entries): array
+    public function summarise(iterable $entries, int $limit = 0): array
+    {
+        $groups = $this->summariseWithoutLimit($entries);
+        if ($limit > 0) {
+            return array_slice($groups, 0, $limit);
+        }
+
+        return $groups;
+    }
+
+    /**
+     * @param iterable<ParsedLogEntry> $entries
+     * @return list<ErrorGroup>
+     */
+    private function summariseWithoutLimit(iterable $entries): array
     {
         /** @var array<string, array{exceptionClass: string, message: string, count: int, first: ?DateTimeImmutable, last: ?DateTimeImmutable, stacks: array<string, int>}> $buckets */
         $buckets = [];
@@ -101,11 +115,11 @@ final class Summariser
 
     private function minTime(?DateTimeImmutable $left, ?DateTimeImmutable $right): ?DateTimeImmutable
     {
-        if (!$left instanceof \DateTimeImmutable) {
+        if (! $left instanceof DateTimeImmutable) {
             return $right;
         }
 
-        if (!$right instanceof \DateTimeImmutable) {
+        if (! $right instanceof DateTimeImmutable) {
             return $left;
         }
 
@@ -114,11 +128,11 @@ final class Summariser
 
     private function maxTime(?DateTimeImmutable $left, ?DateTimeImmutable $right): ?DateTimeImmutable
     {
-        if (!$left instanceof \DateTimeImmutable) {
+        if (! $left instanceof DateTimeImmutable) {
             return $right;
         }
 
-        if (!$right instanceof \DateTimeImmutable) {
+        if (! $right instanceof DateTimeImmutable) {
             return $left;
         }
 

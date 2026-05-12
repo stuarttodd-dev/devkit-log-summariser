@@ -8,10 +8,10 @@ use Devkit\LogSummariser\ErrorGroup;
 use Devkit\LogSummariser\Flow\FlowSummary;
 use Devkit\LogSummariser\Flow\LogFlow;
 
-final class JsonReportRenderer
+final readonly class JsonReportRenderer
 {
     public function __construct(
-        private readonly FlowSummary $flowSummary = new FlowSummary(),
+        private FlowSummary $flowSummary = new FlowSummary(),
     ) {
     }
 
@@ -75,7 +75,7 @@ final class JsonReportRenderer
             }
 
             $payload[] = [
-                'id' => $flow->id,
+                'id' => $flow->identifier,
                 'type' => $flow->type,
                 'confidence' => $flow->confidence,
                 'confidenceReason' => $flow->confidenceReason,

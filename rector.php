@@ -10,7 +10,6 @@ return RectorConfig::configure()
     ])
     ->withPhpSets(php83: true)
     ->withSets([
-        SetList::CARBON,
         SetList::CODE_QUALITY,
         SetList::CODING_STYLE,
         SetList::DEAD_CODE,

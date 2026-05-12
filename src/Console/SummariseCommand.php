@@ -72,7 +72,14 @@ final class SummariseCommand extends Command
                 'group-by',
                 null,
                 InputOption::VALUE_REQUIRED,
-                'Force grouping by a specific key: request_id, correlation_id, trace_id, job_uuid, batch_id, command, route, user_id, tenant_id',
+                'Force grouping by a specific key: request_id, correlation_id, trace_id, ' .
+                'job_uuid, batch_id, command, route, user_id, tenant_id',
+            )
+            ->addOption(
+                'limit',
+                'l',
+                InputOption::VALUE_REQUIRED,
+                'Limit the number of error groups shown (default: no limit)',
             );
     }
 
@@ -84,6 +91,26 @@ final class SummariseCommand extends Command
             $output->writeln('<error>Provide at least one log file path.</error>');
 
             return Command::FAILURE;
+        }
+
+        $flowsRequested = $input->getOption('flows');
+        $flowDetail = (bool) $input->getOption('flow-detail');
+        $flowTypeFilter = $input->getOption('flow-type');
+        $groupByKey = $input->getOption('group-by');
+        $limit = $input->getOption('limit');
+
+        $totalSize = $this->getTotalFileSize($files);
+        $maxSafeSize = 50 * 1024 * 1024;
+        if ($totalSize > $maxSafeSize) {
+            $output->writeln(sprintf(
+                '<comment>Warning: combined log size is %s (over ~50MB). '
+                . 'Consider smaller files or --limit for a smaller report.</comment>',
+                $this->formatBytes($totalSize),
+            ));
+            if ($limit === null || $limit === '') {
+                $limit = '100';
+                $output->writeln('<comment>Applying default --limit=100 for this run.</comment>');
+            }
         }
 
         $rawFormat = $input->getOption('format');
@@ -108,44 +135,82 @@ final class SummariseCommand extends Command
             return Command::FAILURE;
         }
 
-        $flowsRequested = $input->getOption('flows');
-        $flowDetail = $input->getOption('flow-detail');
-        $flowTypeFilter = $input->getOption('flow-type');
-        $groupByKey = $input->getOption('group-by');
 
         if ($flowsRequested && $format !== 'html' && !$flowDetail) {
             $output->writeln('<error>--flows requires --format=html or --flow-detail for text output.</error>');
             return Command::FAILURE;
         }
 
-        if ($flowTypeFilter !== null && !in_array($flowTypeFilter, ['request', 'queue-job', 'command', 'webhook', 'import', 'unknown'], true)) {
-            $output->writeln('<error>--flow-type must be one of: request, queue-job, command, webhook, import, unknown.</error>');
+        if (
+            $flowTypeFilter !== null && !in_array($flowTypeFilter, [
+                'request',
+                'queue-job',
+                'command',
+                'webhook',
+                'import',
+                'unknown'
+            ], true)
+        ) {
+            $output->writeln(
+                '<error>--flow-type must be one of: request, queue-job, command, webhook, import, unknown.</error>'
+            );
             return Command::FAILURE;
         }
 
-        if ($groupByKey !== null && !in_array($groupByKey, ['request_id', 'correlation_id', 'trace_id', 'job_uuid', 'batch_id', 'command', 'route', 'user_id', 'tenant_id'], true)) {
-            $output->writeln('<error>--group-by must be one of: request_id, correlation_id, trace_id, job_uuid, batch_id, command, route, user_id, tenant_id.</error>');
+        if (
+            $groupByKey !== null && !in_array($groupByKey, [
+                'request_id',
+                'correlation_id',
+                'trace_id',
+                'job_uuid',
+                'batch_id',
+                'command',
+                'route',
+                'user_id',
+                'tenant_id'
+            ], true)
+        ) {
+            $output->writeln(
+                '<error>--group-by must be one of: request_id, correlation_id, trace_id, ' .
+                'job_uuid, batch_id, command, route, user_id, tenant_id.</error>'
+            );
+            return Command::FAILURE;
+        }
+
+        if ($limit !== null && !is_numeric($limit)) {
+            $output->writeln('<error>--limit must be a number.</error>');
             return Command::FAILURE;
         }
 
         $parser = $this->createParser($parserName);
         $entries = $this->loadEntries($parser, $files);
-        $groups = (new Summariser())->summarise($entries);
+        $groups = (new Summariser())->summarise($entries, $limit ? (int) $limit : 0);
 
         $flows = [];
         if ($flowsRequested) {
             $grouper = new FlowGrouper();
             $allFlows = $grouper->group($entries, $groupByKey);
-            if ($flowTypeFilter !== null) {
-                $flows = array_filter($allFlows, fn($flow) => $flow->type === $flowTypeFilter);
-            } else {
-                $flows = $allFlows;
-            }
+            $flows = $flowTypeFilter !== null
+                ? array_filter($allFlows, fn($flow): bool => $flow->type === $flowTypeFilter)
+                : $allFlows;
         }
 
-        $report = $this->renderReport($format, $groups, $flows, $flowDetail);
+        $report = $flowDetail
+            ? $this->renderTextReportWithFlowDetail($groups, $flows)
+            : $this->renderReport($format, $groups, $flows);
 
-        return $this->emitReport($output, $report, $outPath);
+        $result = $this->emitReport($output, $report, $outPath);
+
+        if (
+            $result === Command::SUCCESS
+            && $format === 'html'
+            && $outPath !== null
+            && PHP_OS_FAMILY === 'Darwin'
+        ) {
+            exec('open ' . escapeshellarg($outPath));
+        }
+
+        return $result;
     }
 
     private function isValidFormat(string $format): bool
@@ -200,24 +265,22 @@ final class SummariseCommand extends Command
 
     /**
      * @param list<string> $files
-     * @return list<ParsedLogEntry>
+     * @return \Generator<ParsedLogEntry>
      */
-    private function loadEntries(LogParserInterface $parser, array $files): array
+    private function loadEntries(LogParserInterface $parser, array $files): \Generator
     {
-        $allEntries = [];
         foreach ($files as $file) {
             foreach ($parser->parseFile($file) as $entry) {
-                $allEntries[] = $entry;
+                yield $entry;
             }
         }
-
-        return $allEntries;
     }
 
     /**
      * @param list<ErrorGroup> $groups
+     * @param list<LogFlow> $flows
      */
-    private function renderReport(string $format, array $groups, array $flows = [], bool $flowDetail = false): string
+    private function renderReport(string $format, array $groups, array $flows = []): string
     {
         if ($format === 'json') {
             return (new JsonReportRenderer())->render($groups);
@@ -231,10 +294,34 @@ final class SummariseCommand extends Command
             return (new HtmlReportRenderer())->render($groups, $flows);
         }
 
+        return $this->renderTextReport($groups, $flows);
+    }
+
+    /**
+     * @param list<ErrorGroup> $groups
+     * @param list<LogFlow> $flows
+     */
+    private function renderTextReport(array $groups, array $flows): string
+    {
         $text = (new TextReportRenderer())->render($groups);
         if ($flows !== []) {
             $flowRenderer = new FlowRenderer();
-            $text .= "\n\n" . $flowRenderer->renderText($flows, $flowDetail);
+            $text .= "\n\n" . $flowRenderer->renderText($flows, false);
+        }
+
+        return $text;
+    }
+
+    /**
+     * @param list<ErrorGroup> $groups
+     * @param list<LogFlow> $flows
+     */
+    private function renderTextReportWithFlowDetail(array $groups, array $flows): string
+    {
+        $text = (new TextReportRenderer())->render($groups);
+        if ($flows !== []) {
+            $flowRenderer = new FlowRenderer();
+            $text .= "\n\n" . $flowRenderer->renderText($flows, true);
         }
 
         return $text;
@@ -256,5 +343,36 @@ final class SummariseCommand extends Command
         }
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * @param list<string> $files
+     */
+    private function getTotalFileSize(array $files): int
+    {
+        $totalSize = 0;
+        foreach ($files as $file) {
+            if (! is_readable($file)) {
+                continue;
+            }
+
+            $size = filesize($file);
+            if ($size !== false) {
+                $totalSize += $size;
+            }
+        }
+
+        return $totalSize;
+    }
+
+    private function formatBytes(int $bytes, int $decimals = 2): string
+    {
+        if ($bytes == 0) {
+            return '0 B';
+        }
+
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $factor = floor(log($bytes, 1024));
+        return sprintf('%.' . $decimals . 'f ' . $units[$factor], $bytes / 1024 ** $factor);
     }
 }

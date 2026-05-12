@@ -11,14 +11,21 @@ namespace Devkit\LogSummariser\Flow;
 final class FlowDetector
 {
     public const string TYPE_REQUEST   = 'request';
+
     public const string TYPE_QUEUE_JOB = 'queue-job';
+
     public const string TYPE_COMMAND   = 'command';
+
     public const string TYPE_WEBHOOK   = 'webhook';
+
     public const string TYPE_IMPORT    = 'import';
+
     public const string TYPE_UNKNOWN   = 'unknown';
 
     public const string CONFIDENCE_HIGH   = 'high';
+
     public const string CONFIDENCE_MEDIUM = 'medium';
+
     public const string CONFIDENCE_LOW    = 'low';
 
     /**

@@ -29,7 +29,7 @@ test('groups repeated type errors with first and last timestamps and dedupes sta
 test('generic parser groups plain PHP warnings and fatals', function (): void {
     $path = __DIR__ . '/../fixtures/logs/generic_php.log';
     $parser = new GenericPhpLogParser();
-    $entries = $parser->parseFile($path);
+    $entries = iterator_to_array($parser->parseFile($path));
     expect($entries)->toHaveCount(3);
 
     $groups = (new Summariser())->summarise($entries);

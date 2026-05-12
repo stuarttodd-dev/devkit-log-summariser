@@ -34,7 +34,7 @@
         "tests": "./vendor/bin/pest",
         "phpcs": "./vendor/bin/phpcs --standard=PSR12 --report=summary src/ bin/",
         "phpcbf": "./vendor/bin/phpcbf --standard=PSR12 src/ bin/",
-        "phpmd": "./vendor/bin/phpmd src/ text cleancode,codesize,controversial,design,naming,unusedcode",
+        "phpmd": "./vendor/bin/phpmd src/ text phpmd.xml",
         "phpstan": "./vendor/bin/phpstan analyse src/ bin/ --level max",
         "rector:dry-run": "./vendor/bin/rector process --dry-run",
         "rector": "./vendor/bin/rector process",

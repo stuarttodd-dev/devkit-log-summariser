@@ -18,11 +18,13 @@ final class SuggestedActionRules
         $message = $mainError->message;
         $hay = $class . ' ' . $message;
 
-        if ($this->matches($hay, [
+        if (
+            $this->matches($hay, [
             'ProcessTimedOutException',
             'Maximum execution time',
             'pcntl_alarm',
-        ])) {
+            ])
+        ) {
             return 'Check PHP `max_execution_time`, queue worker `--timeout`, and any external service timeouts.';
         }
 

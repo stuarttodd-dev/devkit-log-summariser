@@ -18,18 +18,55 @@ final readonly class GenericPhpLogParser implements LogParserInterface
     }
 
     #[\Override]
-    public function parseFile(string $path): array
+    public function parseFile(string $path): \Generator
     {
         if (! is_readable($path)) {
             throw new RuntimeException('Cannot read log file: ' . $path);
         }
 
-        $content = file_get_contents($path);
-        if ($content === false) {
+        $handle = fopen($path, 'r');
+        if ($handle === false) {
             throw new RuntimeException('Cannot read log file: ' . $path);
         }
 
-        return $this->parseString($content);
+        try {
+            $currentBlock = [];
+            $inBlock = false;
+
+            while (($line = fgets($handle)) !== false) {
+                $line = rtrim($line, "\r\n");
+                $isError = $this->isGenericErrorLine($line);
+
+                if ($isError && $inBlock) {
+                    $block = implode("\n", $currentBlock);
+                    if (trim($block) !== '') {
+                        yield $this->entryBuilder->buildFromBlock($block);
+                    }
+
+                    $currentBlock = [$line];
+                    continue;
+                }
+
+                if ($isError) {
+                    $inBlock = true;
+                    $currentBlock = [$line];
+                    continue;
+                }
+
+                if ($inBlock) {
+                    $currentBlock[] = $line;
+                }
+            }
+
+            if ($inBlock) {
+                $block = implode("\n", $currentBlock);
+                if (trim($block) !== '') {
+                    yield $this->entryBuilder->buildFromBlock($block);
+                }
+            }
+        } finally {
+            fclose($handle);
+        }
     }
 
     #[\Override]

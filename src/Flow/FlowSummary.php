@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Devkit\LogSummariser\Flow;
 
-final class FlowSummary
+final readonly class FlowSummary
 {
     public function __construct(
-        private readonly SuggestedActionRules $rules = new SuggestedActionRules(),
+        private SuggestedActionRules $rules = new SuggestedActionRules(),
     ) {
     }
 

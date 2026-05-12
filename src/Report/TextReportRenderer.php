@@ -8,10 +8,10 @@ use Devkit\LogSummariser\ErrorGroup;
 use Devkit\LogSummariser\Flow\FlowRenderer;
 use Devkit\LogSummariser\Flow\LogFlow;
 
-final class TextReportRenderer
+final readonly class TextReportRenderer
 {
     public function __construct(
-        private readonly FlowRenderer $flowRenderer = new FlowRenderer(),
+        private FlowRenderer $flowRenderer = new FlowRenderer(),
     ) {
     }
 
@@ -19,14 +19,24 @@ final class TextReportRenderer
      * @param list<ErrorGroup> $groups
      * @param list<LogFlow>|null $flows
      */
-    public function render(array $groups, ?array $flows = null, bool $flowDetail = false): string
+    public function render(array $groups, ?array $flows = null): string
     {
         $base = $this->renderGroups($groups);
         if ($flows === null) {
             return $base;
         }
 
-        return $base . "\n" . $this->flowRenderer->renderText($flows, $flowDetail);
+        return $base . "\n" . $this->flowRenderer->renderText($flows, false);
+    }
+
+    /**
+     * @param list<ErrorGroup> $groups
+     * @param list<LogFlow> $flows
+     */
+    public function renderWithFlowDetail(array $groups, array $flows): string
+    {
+        $base = $this->renderGroups($groups);
+        return $base . "\n" . $this->flowRenderer->renderText($flows, true);
     }
 
     /**

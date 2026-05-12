@@ -16,18 +16,40 @@ final readonly class LaravelStyleLogParser implements LogParserInterface
     }
 
     #[\Override]
-    public function parseFile(string $path): array
+    public function parseFile(string $path): \Generator
     {
         if (! is_readable($path)) {
             throw new RuntimeException('Cannot read log file: ' . $path);
         }
 
-        $content = file_get_contents($path);
-        if ($content === false) {
+        $handle = fopen($path, 'r');
+        if ($handle === false) {
             throw new RuntimeException('Cannot read log file: ' . $path);
         }
 
-        return $this->parseString($content);
+        try {
+            $currentBlock = [];
+
+            while (($line = fgets($handle)) !== false) {
+                $line = rtrim($line, "\r\n");
+
+                if (preg_match(self::TIMESTAMP_LINE, $line) === 1 && $currentBlock !== []) {
+                    $block = implode("\n", $currentBlock);
+                    yield $this->entryBuilder->buildFromBlock($block);
+                    $currentBlock = [$line];
+                    continue;
+                }
+
+                $currentBlock[] = $line;
+            }
+
+            if ($currentBlock !== []) {
+                $block = implode("\n", $currentBlock);
+                yield $this->entryBuilder->buildFromBlock($block);
+            }
+        } finally {
+            fclose($handle);
+        }
     }
 
     #[\Override]

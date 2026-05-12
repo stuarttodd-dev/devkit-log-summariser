@@ -7,10 +7,10 @@ namespace Devkit\LogSummariser\Flow;
 use DateTimeImmutable;
 use Devkit\LogSummariser\ParsedLogEntry;
 
-final class FlowRenderer
+final readonly class FlowRenderer
 {
     public function __construct(
-        private readonly FlowSummary $summary = new FlowSummary(),
+        private FlowSummary $summary = new FlowSummary(),
     ) {
     }
 

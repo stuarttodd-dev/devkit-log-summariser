@@ -16,7 +16,7 @@ final readonly class LogFlow
      * @param list<ParsedLogEntry> $entries
      */
     public function __construct(
-        public string $id,
+        public string $identifier,
         public string $type,
         public string $confidence,
         public string $confidenceReason,

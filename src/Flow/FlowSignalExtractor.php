@@ -34,11 +34,11 @@ final class FlowSignalExtractor
 
         $message = $entry->message;
 
-        $picked['jobUuid']     = $picked['jobUuid']     ?? $this->scanJobUuid($message);
-        $picked['jobClass']    = $picked['jobClass']    ?? $this->scanJobClass($message);
-        $picked['commandName'] = $picked['commandName'] ?? $this->scanCommand($message);
-        $picked['route']       = $picked['route']       ?? $this->scanRoute($message);
-        $picked['url']         = $picked['url']         ?? $this->scanUrl($message);
+        $picked['jobUuid'] ??= $this->scanJobUuid($message);
+        $picked['jobClass'] ??= $this->scanJobClass($message);
+        $picked['commandName'] ??= $this->scanCommand($message);
+        $picked['route'] ??= $this->scanRoute($message);
+        $picked['url'] ??= $this->scanUrl($message);
 
         return new FlowSignals(
             requestId:     $picked['requestId'],
@@ -98,7 +98,13 @@ final class FlowSignalExtractor
 
     private function scanJobUuid(string $message): ?string
     {
-        if (preg_match('/\b([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/i', $message, $captures) === 1) {
+        if (
+            preg_match(
+                '/\b([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/i',
+                $message,
+                $captures
+            ) === 1
+        ) {
             return $captures[1];
         }
 

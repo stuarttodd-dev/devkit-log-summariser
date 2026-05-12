@@ -7,9 +7,9 @@ namespace Devkit\LogSummariser;
 interface LogParserInterface
 {
     /**
-     * @return list<ParsedLogEntry>
+     * @return \Generator<ParsedLogEntry>
      */
-    public function parseFile(string $path): array;
+    public function parseFile(string $path): \Generator;
 
     /**
      * @return list<ParsedLogEntry>

@@ -17,10 +17,10 @@ use Devkit\LogSummariser\ParsedLogEntry;
  *
  * No external assets; everything (CSS, JS, JSON payload) is inlined.
  */
-final class HtmlReportRenderer
+final readonly class HtmlReportRenderer
 {
     public function __construct(
-        private readonly FlowSummary $flowSummary = new FlowSummary(),
+        private FlowSummary $flowSummary = new FlowSummary(),
     ) {
     }
 
@@ -38,8 +38,8 @@ final class HtmlReportRenderer
 
     private function document(string $generatedAt, string $payload, int $errorCount, int $flowCount): string
     {
-        $css = $this->css();
-        $js = $this->js();
+         $css = $this->css();
+         $javascript = $this->javascript();
 
         return <<<HTML
 <!doctype html>
@@ -86,15 +86,22 @@ final class HtmlReportRenderer
   </div>
   <table class="flows">
     <thead><tr>
-      <th>Type</th><th>Headline</th><th>Duration</th><th>Entries</th><th>Max level</th><th>Confidence</th><th>Main error</th><th></th>
+      <th>Type</th>
+      <th>Headline</th>
+      <th>Duration</th>
+      <th>Entries</th>
+      <th>Max level</th>
+      <th>Confidence</th>
+      <th>Main error</th>
+      <th></th>
     </tr></thead>
     <tbody></tbody>
   </table>
-</section>
-<script type="application/json" id="report-data">{$payload}</script>
-<script>{$js}</script>
-</body>
-</html>
+ </section>
+ <script type="application/json" id="report-data">{$payload}</script>
+ <script>{$javascript}</script>
+ </body>
+ </html>
 HTML;
     }
 
@@ -128,22 +135,25 @@ th{background:#f1f5f9;font-weight:600}
 .flow-row.hidden{display:none}
 .flow-detail{background:#f8fafc;padding:12px 16px;border-top:1px dashed #cbd5e1}
 .flow-detail h3{margin:0 0 8px;font-size:14px}
-.flow-detail pre{background:#0f172a;color:#e2e8f0;padding:10px;border-radius:6px;overflow:auto;font-size:12px;max-height:240px}
+.flow-detail pre{background:#0f172a;color:#e2e8f0;padding:10px;border-radius:6px;overflow:auto;
+  font-size:12px;max-height:240px}
 .flow-detail .ctx{display:grid;grid-template-columns:max-content 1fr;gap:2px 12px;font-size:12px}
 .flow-detail .ctx dt{color:#64748b}
 .flow-detail .entries{margin-top:8px}
 .flow-detail .entries li{font-family:ui-monospace,Menlo,monospace;font-size:12px;list-style:none;padding:2px 0}
-.flow-detail button{margin-right:8px;border:1px solid #cbd5e1;background:#fff;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:12px}
+.flow-detail button{margin-right:8px;border:1px solid #cbd5e1;background:#fff;border-radius:6px;
+  padding:6px 10px;cursor:pointer;font-size:12px}
 .flow-detail button:hover{background:#f1f5f9}
 details summary{cursor:pointer}
 .errors-section h2{font-size:15px;margin:16px 0 8px}
-.errors-section pre{background:#0f172a;color:#e2e8f0;padding:10px;border-radius:6px;overflow:auto;font-size:12px;max-height:240px}
+.errors-section pre{background:#0f172a;color:#e2e8f0;padding:10px;border-radius:6px;overflow:auto;
+  font-size:12px;max-height:240px}
 CSS;
     }
 
-    private function js(): string
+    private function javascript(): string
     {
-        return <<<'JS'
+         return <<<'JS_WRAP'
 (function(){
   var data = JSON.parse(document.getElementById('report-data').textContent);
   var IGNORED_KEY = 'devkitLogSummariserIgnoredFlows';
@@ -181,9 +191,11 @@ CSS;
   } else {
     var parts = [];
     data.errors.forEach(function(g){
-      parts.push('<section><h2>'+esc(g.headline)+' &mdash; '+g.occurrenceCount+' occurrence' + (g.occurrenceCount===1?'':'s')+'</h2>');
-      parts.push('<p><strong>First:</strong> '+esc(g.firstOccurredAt||'n/a')+' &nbsp; <strong>Last:</strong> '+esc(g.lastOccurredAt||'n/a')+'</p>');
-      if (g.topStack){ parts.push('<pre>'+esc(g.topStack)+'</pre>'); }
+      parts.push('<section><h2>' + esc(g.headline) + ' &mdash; ' + g.occurrenceCount +
+        ' occurrence' + (g.occurrenceCount === 1 ? '' : 's') + '</h2>');
+      parts.push('<p><strong>First:</strong> ' + esc(g.firstOccurredAt || 'n/a') +
+        ' &nbsp; <strong>Last:</strong> ' + esc(g.lastOccurredAt || 'n/a') + '</p>');
+      if (g.topStack){ parts.push('<pre>' + esc(g.topStack) + '</pre>'); }
       parts.push('</section>');
     });
     errorsPanel.innerHTML = parts.join('');
@@ -225,7 +237,8 @@ CSS;
       rows.push(rowHtml(flow, lvl, isIgnored));
     });
 
-    flowsBody.innerHTML = rows.join('') || '<tr><td colspan="8" style="padding:16px;color:#64748b">No flows match the current filters.</td></tr>';
+    flowsBody.innerHTML = rows.join('') ||
+      '<tr><td colspan="8" style="padding:16px;color:#64748b">No flows match the current filters.</td></tr>';
     attachDetailHandlers();
   }
 
@@ -257,7 +270,9 @@ CSS;
     }).join('');
     return '<div class="flow-detail">'+
       '<h3>'+esc(flow.headline)+'</h3>'+
-      '<p><strong>Started:</strong> '+esc(flow.startedAt||'n/a')+' &nbsp; <strong>Ended:</strong> '+esc(flow.endedAt||'n/a')+' &nbsp; <strong>Duration:</strong> '+esc(flow.duration||'n/a')+'</p>'+
+      '<p><strong>Started:</strong> '+esc(flow.startedAt||'n/a')+
+        ' &nbsp; <strong>Ended:</strong> '+esc(flow.endedAt||'n/a')+
+        ' &nbsp; <strong>Duration:</strong> '+esc(flow.duration||'n/a')+'</p>'+
       '<p><strong>Confidence reason:</strong> '+esc(flow.confidenceReason)+'</p>'+
       (ctxLines ? '<dl class="ctx">'+ctxLines+'</dl>' : '')+
       (flow.mainIssue ? '<p><strong>Main issue:</strong> '+esc(flow.mainIssue)+'</p>' : '')+
@@ -301,7 +316,8 @@ CSS;
         var flow = (data.flows || []).find(function(f){ return f.id === id; });
         if (!flow) return;
         var text = renderTicketBlock(flow);
-        var done = function(ok){ btn.textContent = ok ? 'Copied!' : 'Copy failed'; setTimeout(function(){ btn.textContent = 'Copy summary'; }, 1200); };
+        var done = function(ok){ btn.textContent = ok ? 'Copied!' : 'Copy failed';
+          setTimeout(function(){ btn.textContent = 'Copy summary'; }, 1200); };
         if (navigator.clipboard && navigator.clipboard.writeText){
           navigator.clipboard.writeText(text).then(function(){ done(true); }, function(){ done(false); });
         } else {
@@ -313,8 +329,12 @@ CSS;
 
   function renderTicketBlock(flow){
     var ctx = flow.contextValues || {};
-    var ctxLines = Object.keys(ctx).filter(function(k){ return k.charAt(0) !== '_'; }).map(function(k){ return '- '+k+': '+ctx[k]; }).join('\n');
-    var entries = (flow.entries || []).map(function(e){ return '  ['+(e.time||'n/a')+'] '+(e.level||'-')+': '+e.message; }).join('\n');
+    var ctxLines = Object.keys(ctx).filter(function(k){ return k.charAt(0) !== '_'; }).map(function(k){
+      return '- '+k+': '+ctx[k];
+    }).join('\n');
+    var entries = (flow.entries || []).map(function(e){
+      return '  ['+(e.time||'n/a')+'] '+(e.level||'-')+': '+e.message;
+    }).join('\n');
     return [
       'Flow: '+flow.type,
       flow.headline,
@@ -334,7 +354,7 @@ CSS;
   });
   renderRows();
 })();
-JS;
+JS_WRAP;
     }
 
     /**
@@ -347,7 +367,9 @@ JS;
         foreach ($errorGroups as $group) {
             $top = $group->stackSamples[0]['trace'] ?? '';
             $errors[] = [
-                'headline' => $group->exceptionClass === 'Unknown' ? $group->message : $group->exceptionClass . ': ' . $group->message,
+                'headline' => $group->exceptionClass === 'Unknown'
+                    ? $group->message
+                    : $group->exceptionClass . ': ' . $group->message,
                 'occurrenceCount' => $group->occurrenceCount,
                 'firstOccurredAt' => $group->firstOccurredAt?->format('Y-m-d H:i:s'),
                 'lastOccurredAt' => $group->lastOccurredAt?->format('Y-m-d H:i:s'),
@@ -382,31 +404,31 @@ JS;
             ];
         }
 
-        return [
-            'id' => $flow->id,
-            'type' => $flow->type,
-            'confidence' => $flow->confidence,
-            'confidenceReason' => $flow->confidenceReason,
-            'startedAt' => $flow->startedAt?->format('Y-m-d H:i:s'),
-            'endedAt' => $flow->endedAt?->format('Y-m-d H:i:s'),
-            'duration' => $this->formatDuration($flow->durationSeconds),
-            'entryCount' => $flow->entryCount,
-            'levels' => $flow->levels,
-            'relatedFingerprints' => $flow->relatedFingerprints,
-            'headline' => $this->flowSummary->headline($flow),
-            'mainIssue' => $this->flowSummary->mainIssue($flow),
-            'mainStack' => $flow->mainError?->stackTrace ?? '',
-            'suggestedAction' => $this->flowSummary->suggestedAction($flow),
-            'contextValues' => $flow->contextValues,
-            'entries' => $entries,
-        ];
+         return [
+             'id' => $flow->identifier,
+             'type' => $flow->type,
+             'confidence' => $flow->confidence,
+             'confidenceReason' => $flow->confidenceReason,
+             'startedAt' => $flow->startedAt?->format('Y-m-d H:i:s'),
+             'endedAt' => $flow->endedAt?->format('Y-m-d H:i:s'),
+             'duration' => $this->formatDuration($flow->durationSeconds),
+             'entryCount' => $flow->entryCount,
+             'levels' => $flow->levels,
+             'relatedFingerprints' => $flow->relatedFingerprints,
+             'headline' => $this->flowSummary->headline($flow),
+             'mainIssue' => $this->flowSummary->mainIssue($flow),
+             'mainStack' => $flow->mainError?->stackTrace ?? '',
+             'suggestedAction' => $this->flowSummary->suggestedAction($flow),
+             'contextValues' => $flow->contextValues,
+             'entries' => $entries,
+         ];
     }
 
     private function oneLineMessage(ParsedLogEntry $entry): string
     {
         $msg = preg_replace('/\s+/', ' ', $entry->message) ?? $entry->message;
         if (strlen($msg) > 200) {
-            $msg = substr($msg, 0, 200) . '…';
+            return substr($msg, 0, 200) . '…';
         }
 
         return $msg;

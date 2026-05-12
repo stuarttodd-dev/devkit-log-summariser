@@ -8,10 +8,10 @@ use Devkit\LogSummariser\ErrorGroup;
 use Devkit\LogSummariser\Flow\FlowRenderer;
 use Devkit\LogSummariser\Flow\LogFlow;
 
-final class MarkdownReportRenderer
+final readonly class MarkdownReportRenderer
 {
     public function __construct(
-        private readonly FlowRenderer $flowRenderer = new FlowRenderer(),
+        private FlowRenderer $flowRenderer = new FlowRenderer(),
     ) {
     }
 
@@ -19,7 +19,7 @@ final class MarkdownReportRenderer
      * @param list<ErrorGroup> $groups
      * @param list<LogFlow>|null $flows
      */
-    public function render(array $groups, ?array $flows = null, bool $flowDetail = false): string
+    public function render(array $groups, ?array $flows = null): string
     {
         $base = $this->renderGroups($groups);
         if ($flows === null) {
@@ -34,7 +34,33 @@ final class MarkdownReportRenderer
         }
 
         foreach ($flows as $flow) {
-            foreach ($this->flowRenderer->renderOne($flow, $flowDetail) as $line) {
+            foreach ($this->flowRenderer->renderOne($flow, false) as $line) {
+                $lines[] = $line;
+            }
+
+            $lines[] = '';
+        }
+
+        return $base . "\n" . rtrim(implode("\n", $lines)) . "\n";
+    }
+
+    /**
+     * @param list<ErrorGroup> $groups
+     * @param list<LogFlow> $flows
+     */
+    public function renderWithFlowDetail(array $groups, array $flows): string
+    {
+        $base = $this->renderGroups($groups);
+
+        $lines = ['', '# Flows', ''];
+        if ($flows === []) {
+            $lines[] = 'No flows detected.';
+
+            return $base . "\n" . implode("\n", $lines) . "\n";
+        }
+
+        foreach ($flows as $flow) {
+            foreach ($this->flowRenderer->renderOne($flow, true) as $line) {
                 $lines[] = $line;
             }
 
