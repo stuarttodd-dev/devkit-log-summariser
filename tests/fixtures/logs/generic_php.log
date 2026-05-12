@@ -1,0 +1,7 @@
+[2024-01-10 10:00:00] PHP Warning:  Undefined array key "email" in /var/www/app/User.php on line 42
+[2024-01-10 10:00:01] PHP Warning:  Undefined array key "email" in /var/www/app/User.php on line 42
+[2024-01-10 10:01:00] Some normal log line that is not an error
+[2024-01-10 10:02:00] PHP Fatal error:  Uncaught Error: Call to undefined function missing() in /var/www/app/Boot.php:3
+Stack trace:
+#0 /var/www/index.php(2): {main}
+  thrown in /var/www/app/Boot.php on line 3

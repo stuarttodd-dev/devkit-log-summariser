@@ -1,122 +1,160 @@
-# Package Sample Repository
+# devkit-log-summariser
 
-Welcome to the **Package Sample Repository**! This project aims to help developers by providing a solid foundation for creating and maintaining PHP packages. The goal behind this repository is to simplify technical tests while showcasing your skills in building effective PHP packages.
+A small PHP tool that **groups and summarises** PHP log errors: exception type (when detectable), normalised message, **occurrence count**, **first/last** timestamps, and **collapsed duplicate stack traces** per group.
 
-## Features
+It supports two input styles:
 
-- **Docker Support**: This package includes a sample Dockerfile and docker-compose.yml for easy development and testing. Please ensure you have [Docker Desktop](https://www.docker.com/products/docker-desktop) installed to get started.
+1. **Laravel-style** (default) — Monolog lines like `[YYYY-MM-DD HH:MM:SS] channel.LEVEL: …` with multi-line exception bodies. Best for `storage/logs/laravel*.log`.
+2. **Generic PHP** — Plain `PHP Warning:`, `PHP Fatal error:`, `Uncaught …`, `SQLSTATE[…]`, etc. Lines are batched from each “error” line until the next error. Handy for php-fpm/CLI or mixed `error_log` output that is **not** Laravel-blocked.
 
-- **Composer Scripts**: Leverage Composer for dependency management. The repository comes with useful Composer scripts, including:
-  - `phpcs`: For checking coding standards.
-  - `phpmd`: For code analysis.
-  - `phpstan`: For static analysis.
-  - `rector`: For automated code upgrades and refactoring.
-  - `tests`: Run tests found within the `tests` directory.
-  
-- **Automated Testing**: A GitHub Actions workflow is set up to automatically run tests whenever you push to the repository, ensuring your code remains reliable and up to standards.
+Reports: **text** (default), **JSON**, **Markdown**, or **HTML**. Write to a file with **`-o`**.
 
-- **Editable Code**: You can modify the code in the `src` directory and add your own unit tests in the `tests` directory to extend functionality.
+## Flow Grouping (New in v2)
 
-- **GitHub Template**: The repository includes a template for pull requests that you can customise to fit your project needs.
+The tool can group related log entries into "flows" — sequences of log entries that belong to the same request, job, command, or process. Flows help identify the full lifecycle of issues rather than isolated errors.
 
-## Getting Started
+### Flow Detection
 
-1. **Clone the Repository**:
-   ```
-   git clone git@github.com:stuarttodd-dev/package-sample.git
-   ```
+Flows are detected using identifiers like:
+- `request_id`, `correlation_id`, `trace_id`
+- `job_uuid`, `batch_id`, `job.class`
+- `command` name
+- `route` or `url`
+- Close timestamps for related entries
 
-2. **Navigate to repo**:
-   ```
-   cd package-sample
-   ```
+Each flow includes:
+- Flow type: `request`, `queue-job`, `command`, `webhook`, `import`, `unknown`
+- Start/end times and duration
+- Entry count and log levels
+- Main error and suggested action
+- Confidence score (high/medium/low)
 
-3. **Set Up Docker**:
-   Ensure Docker Desktop is installed and running. Build Docker container:
-   ```
-   docker compose build
-   ```
+### Flow Options
 
-4. **Spin up Docker Container**:
-   Run the Docker container:
-   ```
-   docker compose up -d
-   ```
+| Option | Description |
+|--------|-------------|
+| `--flows` | Include flow grouping (requires `--format=html`) |
+| `--flow-detail` | Include detailed flow entries in text output |
+| `--flow-type` | Filter flows by type (request, queue-job, command, webhook, import, unknown) |
+| `--group-by` | Force grouping by a specific key (request_id, correlation_id, trace_id, job_uuid, batch_id, command, route, user_id, tenant_id) |
 
-5. **Install Dependencies**:
-   Inside your Docker container, install the project dependencies using Composer:
-   ```
-   docker exec php-composer-package composer install
-   ```
+### Flow Examples
 
-6. **Run the Standards Check**:
-   Execute the following command to check coding standards and static analysis:
-   ```
-   docker exec php-composer-package composer standards:check
-   ```
+```bash
+# HTML report with flows
+vendor/bin/devkit-log-summarise --flows --format=html -o report.html storage/logs/laravel.log
 
- 7. **Run Tests**:
-   Execute the following command to run tests:
-   ```
-   docker exec php-composer-package composer tests
-   ```
+# Only queue job flows
+vendor/bin/devkit-log-summarise --flows --format=html --flow-type=queue-job storage/logs/laravel.log
 
-## Sharing Your Package
+# Force grouping by user_id
+vendor/bin/devkit-log-summarise --flows --format=html --group-by=user_id storage/logs/laravel.log
 
-To make your package publicly accessible, you can either add it to **Packagist** for installation via Composer or adjust your composer.json file to include the VCS URL:
-
-### Option 1. Add to Packagist
-
-Submit your package to [Packagist.org](https://packagist.org).
-
-### Option 2. Add VCS Line in Composer
-
-Adjust your composer.json file to include the VCS URL, e.g to include this:
-```
-{
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/stuarttodd-dev/package-sample.git" 
-        }
-    ]
-}
+# Text output with flow details
+vendor/bin/devkit-log-summarise --flows --flow-detail storage/logs/laravel.log
 ```
 
-## Tagging Your Releases
+The HTML report provides interactive filtering, searching, and flow expansion with full details.
 
-To create a new release for your package, you can tag your repository using the following commands:
+## Requirements
 
-1. Create a new tag:
-   ```
-   git tag -a v1.0.0 -m "Release version 1.0.0"
-   ```
-3. Push the tag to GitHub:
-   ```
-   git push origin v1.0.0
-   ```
+- PHP 8.3+
+- Composer
 
-## Usage Examples
+## Try it in this repository
 
-Once you've pulled down the package (either by adjusing your composer.json with a VCS path or adding it to packagist), it will be stored in your `vendor` folder for local access. 
+From the project root (after dependencies are installed):
 
-Here’s how you can use the `Greeter` class in your PHP project (but obviously it'd be whatever you've coded into your ``src`` directory:
-
-```
-use HalfShellStudios\PackageSample\Greeter;
-
-$greeter = new Greeter();
-echo $greeter->sayHello();   // Outputs: Well, hello there!
-echo $greeter->sayGoodbye(); // Outputs: Errr... Goodbye!
-echo $greeter->greet();      // Outputs: Well, hello there! Errr... Goodbye!
+```bash
+cd /path/to/devkit-log-summariser
+composer install
 ```
 
-Thats it!
-   
-## Conclusion
+**1. Laravel-style sample** (timestamp blocks, stacks):
 
-This repository serves as a foundation for creating a PHP package, making it easier for you to develop, test, and maintain your projects. Feel free to modify the code and templates to suit your needs!
+```bash
+php bin/devkit-log-summarise tests/fixtures/logs/typeerror_repeat.log
+php bin/devkit-log-summarise tests/fixtures/logs/sqlstate_repeat.log
+```
 
-If you have any questions or suggestions, feel free to open an issue in this repository.
+**2. Generic PHP sample** (no `local.ERROR` prefix):
 
-Happy coding!
+```bash
+php bin/devkit-log-summarise --parser=generic tests/fixtures/logs/generic_php.log
+```
+
+**3. JSON / Markdown** (e.g. for scripts or a ticket):
+
+```bash
+php bin/devkit-log-summarise -f json tests/fixtures/logs/sqlstate_repeat.log
+php bin/devkit-log-summarise --parser=generic -f md -o /tmp/summary.md tests/fixtures/logs/generic_php.log
+```
+
+**4. Run the test suite / quality checks** (optional):
+
+```bash
+composer run tests
+composer run standards:check
+```
+
+## Install as a dependency
+
+```bash
+composer require devkit/log-summariser
+```
+
+The binary is published as `vendor/bin/devkit-log-summarise` when this package is required in another project.
+
+## Usage (any install)
+
+```bash
+vendor/bin/devkit-log-summarise [options] <log-file> [<log-file> ...]
+```
+
+### Main options
+
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--parser` | `-p` | `laravel` (default) or `generic` |
+| `--format` | `-f` | `text` (default), `json`, `md`, `markdown`, or `html` |
+| `--output` | `-o` | Write the report to this file instead of stdout |
+| `--flows` | | Include flow grouping (requires `--format=html` or `--flow-detail`) |
+| `--flow-detail` | | Include detailed flow entries in text output |
+| `--flow-type` | | Filter flows by type |
+| `--group-by` | | Force grouping by a specific key |
+
+Examples:
+
+```bash
+vendor/bin/devkit-log-summarise storage/logs/laravel.log
+vendor/bin/devkit-log-summarise -p generic /var/log/php-fpm-error.log
+vendor/bin/devkit-log-summarise -f json -o report.json app1.log app2.log
+vendor/bin/devkit-log-summarise --flows --format=html -o flows.html storage/logs/laravel.log
+```
+
+## Log format notes
+
+- **Laravel / Monolog**: each entry is expected to start with a line beginning `[YYYY-MM-DD HH:MM:SS]`. The following lines belong to the same entry until the next such line.
+- **Generic**: a new group starts on lines that look like PHP or framework errors (e.g. `PHP Warning:`, `PHP Fatal error:`, `SQLSTATE[`, `Uncaught`, `*Exception:`, or messages containing `Undefined array key` / `Undefined index` when not prefixed with `PHP Warning`). Non-matching lines are skipped until the next error starter; continuation lines (stack `#0`, `thrown in`, etc.) are kept with the preceding error.
+
+## Example output (text)
+
+```
+TypeError: Return value must be of type int, string returned in /app/Foo.php:10 — 3 occurrences
+  First: 2024-01-10 10:00:01  Last: 2024-01-10 12:00:00
+  Stack (most common duplicate):
+    #0 /app/Bar.php(5): Foo->x()
+    …
+```
+
+## Development
+
+```bash
+composer install
+composer run tests
+composer run standards:check
+```
+
+## Licence
+
+MIT

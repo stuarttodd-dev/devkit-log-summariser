@@ -1,0 +1,15 @@
+[2024-01-10 10:00:01] local.ERROR: Request failed
+TypeError: Return value must be of type int, string returned in /app/Foo.php:10
+Stack trace:
+#0 /app/Bar.php(5): Foo->x()
+#1 /app/index.php(2): require('...')
+[2024-01-10 11:00:00] local.ERROR: Request failed
+TypeError: Return value must be of type int, string returned in /app/Foo.php:10
+Stack trace:
+#0 /app/Bar.php(5): Foo->x()
+#1 /app/index.php(2): require('...')
+[2024-01-10 12:00:00] local.ERROR: Request failed
+TypeError: Return value must be of type int, string returned in /app/Foo.php:10
+Stack trace:
+#0 /app/Other.php(1): Foo->x()
+#1 /app/index.php(2): require('...')

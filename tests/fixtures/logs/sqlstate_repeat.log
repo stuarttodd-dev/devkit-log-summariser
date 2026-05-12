@@ -1,0 +1,8 @@
+[2024-01-11 09:00:00] local.ERROR: SQLSTATE[42P01]: Undefined table: 7 ERROR: relation "missing" does not exist (Connection: pgsql, SQL: select * from "missing")
+Illuminate\Database\QueryException: SQLSTATE[42P01]: Undefined table
+Stack trace:
+#0 /app/Query.php(10): run()
+[2024-01-11 09:05:00] local.ERROR: SQLSTATE[42P01]: Undefined table: 7 ERROR: relation "missing" does not exist (Connection: pgsql, SQL: select * from "missing")
+Illuminate\Database\QueryException: SQLSTATE[42P01]: Undefined table
+Stack trace:
+#0 /app/Query.php(10): run()

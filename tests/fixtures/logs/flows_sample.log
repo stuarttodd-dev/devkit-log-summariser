@@ -1,0 +1,16 @@
+[2024-01-10 10:00:01] local.INFO: Processing request {"request_id":"req-123","user_id":"user-456","route":"POST /api/checkout","url":"https://example.com/api/checkout"}
+[2024-01-10 10:00:02] local.ERROR: Payment failed {"request_id":"req-123","exception":"PaymentException","message":"Card declined"}
+[2024-01-10 10:00:03] local.INFO: Request completed {"request_id":"req-123"}
+
+[2024-01-10 10:05:01] local.INFO: Processing job {"job_uuid":"job-789","job":"App\\Jobs\\ProcessInvoicePdf","batch_id":"batch-101"}
+[2024-01-10 10:05:05] local.ERROR: PDF generation timeout {"job_uuid":"job-789","exception":"ProcessTimedOutException","message":"Maximum execution time exceeded"}
+[2024-01-10 10:05:10] local.INFO: Job failed {"job_uuid":"job-789"}
+
+[2024-01-10 10:10:01] local.INFO: Running scheduled command {"command":"invoice:generate"}
+[2024-01-10 10:10:02] local.ERROR: Command failed {"command":"invoice:generate","exception":"RuntimeException","message":"Database connection failed"}
+
+[2024-01-10 10:15:01] local.INFO: Webhook received {"request_id":"web-111","correlation_id":"corr-222","route":"POST /webhook/stripe","url":"https://example.com/webhook/stripe"}
+[2024-01-10 10:15:02] local.ERROR: Webhook processing failed {"request_id":"web-111","correlation_id":"corr-222","exception":"ValidationException","message":"Invalid payload"}
+
+[2024-01-10 10:20:01] local.INFO: Import started {"job_uuid":"import-333","job":"App\\Jobs\\CsvImport","user_id":"user-456"}
+[2024-01-10 10:20:05] local.ERROR: Import failed {"job_uuid":"import-333","exception":"OutOfMemoryException","message":"Allowed memory size exhausted"}
