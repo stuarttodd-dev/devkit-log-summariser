@@ -1,5 +1,7 @@
 # devkit-log-summariser
 
+![DevKit Logo](devkit-logo.png)
+
 A small PHP tool that **groups and summarises** PHP log errors: exception type (when detectable), normalised message, **occurrence count**, **first/last** timestamps, and **collapsed duplicate stack traces** per group.
 
 It supports two input styles:
@@ -8,6 +10,101 @@ It supports two input styles:
 2. **Generic PHP** — Plain `PHP Warning:`, `PHP Fatal error:`, `Uncaught …`, `SQLSTATE[…]`, etc. Lines are batched from each “error” line until the next error. Handy for php-fpm/CLI or mixed `error_log` output that is **not** Laravel-blocked.
 
 Reports: **text** (default), **JSON**, **Markdown**, or **HTML**. Write to a file with **`-o`**.
+
+## Step-by-Step Usage Guide
+
+Follow these steps to get started with summarizing your PHP logs using devkit-log-summariser.
+
+### 1. Install the Tool
+
+You have two options to install the tool:
+
+- **Option 1: Install as a dependency in your project** (recommended for production use):
+  ```bash
+  composer require devkit/log-summariser
+  ```
+  The binary will be available as `vendor/bin/devkit-log-summarise`.
+
+- **Option 2: Clone and use locally** (for testing or development):
+  ```bash
+  git clone https://github.com/your-repo/devkit-log-summariser.git
+  cd devkit-log-summariser
+  composer install
+  ```
+  Use `php bin/devkit-log-summarise` instead of `vendor/bin/devkit-log-summariser` in the commands below.
+
+### 2. Prepare Your Log File
+
+- Ensure you have access to a log file you want to summarize.
+- For Laravel applications, use files like `storage/logs/laravel.log` or `storage/logs/laravel-*.log`.
+- For generic PHP logs, use files like `/var/log/php-fpm-error.log` or any error log containing PHP warnings, fatal errors, or exceptions.
+
+### 3. Run Basic Summarization
+
+Run the tool on your log file to get a summary of grouped errors:
+
+```bash
+vendor/bin/devkit-log-summarise storage/logs/laravel.log
+```
+
+This will output a text-based summary to the console, showing grouped errors with occurrence counts, timestamps, and collapsed stack traces.
+
+### 4. Customize Output Format
+
+Choose the output format that suits your needs:
+
+- **Text** (default): Human-readable summary in the console.
+- **JSON**: Machine-readable format for scripts or further processing.
+- **Markdown**: Formatted for documentation or tickets.
+- **HTML**: Interactive web page with tabs and filtering.
+
+Examples:
+
+```bash
+# JSON output
+vendor/bin/devkit-log-summarise -f json storage/logs/laravel.log
+
+# Markdown output saved to a file
+vendor/bin/devkit-log-summarise -f md -o summary.md storage/logs/laravel.log
+
+# HTML output
+vendor/bin/devkit-log-summarise -f html -o report.html storage/logs/laravel.log
+```
+
+### 5. Handle Different Log Types
+
+The tool supports two log formats:
+
+- **Laravel-style** (default): Monolog-formatted logs with timestamps like `[YYYY-MM-DD HH:MM:SS]`.
+- **Generic PHP**: Plain PHP error logs without the Laravel prefix.
+
+For generic logs, specify the parser:
+
+```bash
+vendor/bin/devkit-log-summarise -p generic /var/log/php-fpm-error.log
+```
+
+### 6. Enable Advanced Flow Grouping
+
+For a deeper analysis, enable flow grouping to see related log entries as "flows" (requests, jobs, etc.):
+
+```bash
+# Generate HTML report with flows
+vendor/bin/devkit-log-summarise --flows -f html -o flows.html storage/logs/laravel.log
+```
+
+- Filter by flow type: `--flow-type=queue-job`
+- Force grouping by a key: `--group-by=request_id`
+- Include flow details in text output: `--flow-detail`
+
+See the "Flow Grouping" section below for more details.
+
+### 7. View and Share Results
+
+- **Console output**: View directly in your terminal.
+- **File output**: Use `-o filename` to save to a file.
+- **HTML reports**: Open in a web browser for interactive exploration.
+- **JSON/Markdown**: Integrate into scripts, dashboards, or documentation.
 
 ## Flow Grouping (New in v2)
 
